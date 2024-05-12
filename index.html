@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webcam Capture</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #272727;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #f3f3f3;
+        }
+
+        #webcam {
+            border: 3px solid #f3f3f3;
+            border-radius: 8px;
+        }
+
+        @media screen and (max-width: 600px) {
+          #webcam, #capturedImage {
+              width: 100%;
+              height: auto;
+          }
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Set maximum sizes for the captured image */
+        #capturedImage {
+            max-width: 640px; /* Adjust as needed */
+            max-height: 480px; /* Adjust as needed */
+            object-fit: contain; /* This ensures the aspect ratio is maintained */
+        }
+        /* Hide the retake button initially */
+        #retakeButton {
+            display: none;
+        }
+        /* Spinner styles */
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #272727;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin: 10px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <script>
+      
+      
+
+        function startWebcam() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                document.getElementById('webcam').srcObject = stream;
+                document.getElementById('webcam').style.display = 'block';
+                document.getElementById('capturedImage').style.display = 'none';
+            }).catch(function(error) {
+                console.error('Webcam error:', error);
+                alert('Error accessing the webcam.');
+            });
+        }
+
+        function captureImage() {
+            var video = document.getElementById('webcam');
+            var canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            var capturedImage = document.getElementById('capturedImage');
+            capturedImage.src = canvas.toDataURL('image/png');
+            // Set the width and height of the captured image to match the video
+            capturedImage.style.maxWidth = video.clientWidth + 'px';
+            capturedImage.style.maxHeight = video.clientHeight + 'px';
+            capturedImage.style.display = 'block'; // Show the captured image
+            document.getElementById('saveToDriveButton').style.display = 'block';
+
+            video.style.display = 'none'; // Hide the webcam
+
+            // Show the retake button and hide the capture button
+            document.getElementById('retakeButton').style.display = 'block';
+            document.querySelector('button[onclick="captureImage()"]').style.display = 'none';
+        }
+
+
+
+        function retakeImage() {
+            // Hide the captured image and show the webcam
+            document.getElementById('capturedImage').style.display = 'none';
+            var video = document.getElementById('webcam');
+            video.style.display = 'block';
+
+            // Hide the retake button and show the capture button
+            document.getElementById('retakeButton').style.display = 'none';
+            document.getElementById('saveToDriveButton').style.display = 'none';
+            document.querySelector('button[onclick="captureImage()"]').style.display = 'block';
+        }
+
+        window.onload = function() {
+            startWebcam();
+        };
+        function getTimestamp() {
+        var now = new Date();
+        var timestamp = now.getFullYear() + '-' + 
+              (now.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+              now.getDate().toString().padStart(2, '0') + '_' + 
+              now.getHours().toString().padStart(2, '0') + '-' + 
+              now.getMinutes().toString().padStart(2, '0') + '-' + 
+              now.getSeconds().toString().padStart(2, '0');
+        return timestamp;
+        }
+
+
+      function saveToDrive() {
+          var imageData = document.getElementById('capturedImage').src.split(',')[1];
+          var timestamp = getTimestamp();
+          var filename = "FILE_PREFIX" + timestamp + '.png';
+
+          // Show loader
+          document.getElementById('loader').style.display = 'block';
+
+          google.script.run.withSuccessHandler(function() {
+              alert('Image saved to Drive!');
+              // Hide loader
+              document.getElementById('loader').style.display = 'none';
+          }).saveImage(imageData, filename);
+      }
+
+
+    </script>
+</head>
+<body>
+    <h1 id="siteTitle"></h1>
+      <script>
+        google.script.run.withSuccessHandler(function(title) {
+        document.getElementById("siteTitle").textContent = title;
+        }).getSiteTitle();
+      </script>
+    <div id="cameraContainer">
+        <video id="webcam" autoplay playsinline width="640" height="480"></video>
+        <img id="capturedImage" style="display:none;">
+    </div>
+    <button onclick="captureImage()">Capture Image</button>
+    <button id="retakeButton" onclick="retakeImage()">Retake Photo</button>
+    <button id="saveToDriveButton" onclick="saveToDrive()" style="display:none;">Save to Drive</button>
+    <div class="loader" id="loader"></div> <!-- Loading spinner -->
+</body>
+</html>
